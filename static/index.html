@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Görüntü İşleme Sistemi</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
+
+:root {
+  --bg: #050510;
+  --surface: #0a0a1e;
+  --panel: #0d0d2b;
+  --border: #1a1a44;
+  --accent: #00d4ff;
+  --accent2: #7c3aed;
+  --accent3: #f59e0b;
+  --text: #e2e8f0;
+  --muted: #6b7280;
+  --success: #10b981;
+  --danger: #ef4444;
+  --grid: rgba(0,212,255,0.04);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Rajdhani', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Background grid */
+body::before {
+  content:'';
+  position:fixed; inset:0; z-index:0;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events:none;
+}
+
+/* ── HEADER ── */
+header {
+  position: relative; z-index:10;
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 14px 28px;
+  background: rgba(10,10,30,0.9);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+}
+
+.logo {
+  font-family: 'Space Mono', monospace;
+  font-size: 18px; font-weight:700;
+  color: var(--accent);
+  letter-spacing: 2px;
+  text-shadow: 0 0 20px rgba(0,212,255,0.5);
+}
+.logo span { color: var(--accent2); }
+
+.header-info {
+  font-size: 11px; color: var(--muted); letter-spacing:1px;
+  font-family:'Space Mono',monospace;
+}
+
+/* ── LAYOUT ── */
+.app {
+  position:relative; z-index:1;
+  display:grid;
+  grid-template-columns: 280px 1fr 280px;
+  grid-template-rows: auto 1fr;
+  gap:0;
+  height: calc(100vh - 57px);
+}
+
+/* ── LEFT PANEL ── */
+.left-panel {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 16px;
+  display:flex; flex-direction:column; gap:8px;
+}
+
+.panel-title {
+  font-family:'Space Mono',monospace;
+  font-size:10px; letter-spacing:2px;
+  color: var(--muted); text-transform:uppercase;
+  padding: 8px 4px 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom:4px;
+}
+
+/* Operation groups */
+.op-group { margin-bottom: 4px; }
+
+.op-group-title {
+  font-size:10px; letter-spacing:1.5px;
+  color: var(--accent); text-transform:uppercase;
+  padding: 6px 8px;
+  background: rgba(0,212,255,0.05);
+  border-left: 2px solid var(--accent);
+  cursor:pointer;
+  user-select:none;
+  display:flex; justify-content:space-between;
+}
+.op-group-title:hover { background: rgba(0,212,255,0.1); }
+
+.op-group-body { display:flex; flex-direction:column; gap:2px; padding:4px 0; }
+.op-group-body.collapsed { display:none; }
+
+.op-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text);
+  padding: 7px 12px;
+  font-family:'Rajdhani',sans-serif;
+  font-size:13px; font-weight:500;
+  cursor:pointer; text-align:left;
+  border-radius:4px;
+  transition: all 0.15s;
+  letter-spacing:0.5px;
+}
+.op-btn:hover {
+  background: rgba(124,58,237,0.15);
+  border-color: var(--accent2);
+  color: #c4b5fd;
+}
+.op-btn.active {
+  background: rgba(0,212,255,0.12);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── CENTER ── */
+.center {
+  display:flex; flex-direction:column;
+  overflow:hidden;
+}
+
+/* Canvas area */
+.canvas-area {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  padding:20px; gap:20px;
+  background: radial-gradient(ellipse at center, #0d0d2b 0%, #050510 70%);
+  overflow:hidden; position:relative;
+}
+
+.img-frame {
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  flex:1; max-width:46%;
+}
+
+.img-label {
+  font-family:'Space Mono',monospace;
+  font-size:9px; letter-spacing:2px; color:var(--muted);
+  text-transform:uppercase;
+}
+
+.img-container {
+  position:relative;
+  width:100%; max-height: calc(100vh - 280px);
+  border: 1px solid var(--border);
+  border-radius:6px;
+  background: #020210;
+  overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  min-height:200px;
+}
+
+.img-container img {
+  max-width:100%; max-height:100%;
+  object-fit:contain;
+  image-rendering: pixelated;
+}
+
+.img-placeholder {
+  display:flex; flex-direction:column; align-items:center; gap:12px;
+  color:var(--muted); font-size:13px; padding:40px;
+  text-align:center;
+}
+
+.img-placeholder svg { opacity:0.3; }
+
+/* Arrow between */
+.arrow-divider {
+  font-size:24px; color:var(--accent);
+  opacity:0.6;
+  flex-shrink:0;
+  text-shadow: 0 0 10px var(--accent);
+}
+
+/* Upload bar */
+.upload-bar {
+  padding:12px 20px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+}
+
+.btn {
+  padding: 8px 20px;
+  font-family:'Rajdhani',sans-serif;
+  font-size:13px; font-weight:700;
+  letter-spacing:1px;
+  border:none; border-radius:4px;
+  cursor:pointer; transition:all 0.2s;
+  text-transform:uppercase;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color:#fff;
+}
+.btn-primary:hover { opacity:0.85; transform:translateY(-1px); }
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.btn-secondary:hover { border-color:var(--accent); color:var(--accent); }
+
+.btn-success {
+  background: linear-gradient(135deg, var(--success), #059669);
+  color:#fff;
+}
+.btn-success:hover { opacity:0.85; }
+
+.btn-danger {
+  background: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+.btn-danger:hover { background:var(--danger); color:#fff; }
+
+.file-input-wrapper {
+  position:relative; overflow:hidden;
+}
+.file-input-wrapper input[type=file] {
+  position:absolute; left:0; top:0; opacity:0;
+  width:100%; height:100%; cursor:pointer;
+}
+
+.status-bar {
+  margin-left:auto;
+  font-family:'Space Mono',monospace;
+  font-size:10px; color:var(--muted);
+}
+.status-bar.processing { color:var(--accent3); }
+.status-bar.done { color:var(--success); }
+.status-bar.error { color:var(--danger); }
+
+/* ── RIGHT PANEL ── */
+.right-panel {
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  padding:16px;
+  display:flex; flex-direction:column; gap:12px;
+}
+
+/* Params form */
+.param-group {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius:6px;
+  padding:14px;
+}
+
+.param-title {
+  font-family:'Space Mono',monospace;
+  font-size:10px; letter-spacing:2px;
+  color:var(--accent); text-transform:uppercase;
+  margin-bottom:12px;
+}
+
+.param-row {
+  display:flex; flex-direction:column; gap:4px;
+  margin-bottom:10px;
+}
+
+.param-row:last-child { margin-bottom:0; }
+
+.param-label {
+  font-size:11px; color:var(--muted); letter-spacing:0.5px;
+}
+
+.param-input {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--border);
+  border-radius:3px;
+  color: var(--text);
+  padding: 5px 8px;
+  font-family:'Space Mono',monospace;
+  font-size:12px;
+  width:100%;
+  outline:none;
+  transition:border-color 0.15s;
+}
+.param-input:focus { border-color:var(--accent); }
+
+input[type=range] {
+  -webkit-appearance:none;
+  width:100%; height:4px;
+  background: var(--border);
+  border-radius:2px; outline:none;
+  cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance:none;
+  width:14px; height:14px;
+  background:var(--accent);
+  border-radius:50%;
+  box-shadow: 0 0 6px var(--accent);
+}
+
+.range-val {
+  font-family:'Space Mono',monospace;
+  font-size:11px; color:var(--accent3);
+  text-align:right;
+}
+
+/* Histogram preview */
+.hist-preview {
+  display:flex; flex-direction:column; gap:8px;
+}
+.hist-preview img { width:100%; border-radius:4px; border:1px solid var(--border); }
+
+/* Info card */
+.info-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius:6px;
+  padding:14px;
+}
+
+.info-card p {
+  font-size:12px; color:var(--muted); line-height:1.6;
+}
+
+.info-card strong { color:var(--accent3); }
+
+/* ── Spinner ── */
+.spinner {
+  display:none;
+  width:20px; height:20px;
+  border:2px solid var(--border);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ── Toast ── */
+.toast {
+  position:fixed; bottom:24px; right:24px; z-index:9999;
+  padding:10px 18px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:6px;
+  font-size:13px;
+  transition: all 0.3s;
+  transform:translateY(80px); opacity:0;
+}
+.toast.show { transform:translateY(0); opacity:1; }
+.toast.success { border-color:var(--success); color:var(--success); }
+.toast.error { border-color:var(--danger); color:var(--danger); }
+
+/* Image info */
+.img-info {
+  font-family:'Space Mono',monospace;
+  font-size:9px; color:var(--muted);
+  margin-top:4px;
+}
+
+/* Loading overlay */
+.loading-overlay {
+  position:absolute; inset:0;
+  background:rgba(5,5,16,0.7);
+  display:none;
+  align-items:center; justify-content:center;
+  border-radius:6px;
+  z-index:10;
+}
+.loading-overlay.show { display:flex; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+/* ── Second image upload ── */
+.img2-zone {
+  display:none;
+  position:relative;
+}
+.img2-zone.show { display:flex; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">PIXEL<span>LAB</span></div>
+  <div class="header-info">Görüntü İşleme Sistemi · Sıfırdan Implementasyon</div>
+</header>
+
+<div class="app">
+
+  <!-- ── SOL PANEL: İşlemler ── -->
+  <div class="left-panel">
+    <div class="panel-title">İşlemler</div>
+
+    <!-- Temel -->
+    <div class="op-group">
+      <div class="op-group-title" onclick="toggleGroup(this)">🎨 Temel Dönüşümler <span>▾</span></div>
+      <div class="op-group-body">
+        <button class="op-btn" onclick="selectOp('grayscale')">Gri Dönüşüm</button>
+        <button class="op-btn" onclick="selectOp('binary')">Binary Dönüşüm</button>
+        <button class="op-btn" onclick="selectOp('rotate')">Görüntü Döndürme</button>
+        <button class="op-btn" onclick="selectOp('crop')">Görüntü Kırpma</button>
+        <button class="op-btn" onclick="selectOp('resize')">Yaklaştır / Uzaklaştır</button>
+      </div>
+    </div>
+
+    <!-- Renk -->
+    <div class="op-group">
+      <div class="op-group-title" onclick="toggleGroup(this)">🌈 Renk Uzayı <span>▾</span></div>
+      <div class="op-group-body">
+        <button class="op-btn" onclick="selectOp('hsv')">BGR → HSV</button>
+        <button class="op-btn" onclick="selectOp('lab')">BGR → LAB</button>
+      </div>
+    </div>
+
+    <!-- Histogram -->
+    <div class="op-group">
+      <div class="op-group-title" onclick="toggleGroup(this)">📊 Histogram <span>▾</span></div>
+      <div class="op-group-body">
+        <button class="op-btn" onclick="selectOp('histogram_view')">Histogram Görüntüle</button>
+        <button class="op-btn" onclick="selectOp('histogram_stretch')">Histogram Germe</button>
+      </div>
+    </div>
+
+    <!-- Aritmetik -->
+    <div class="op-group">
+      <div class="op-group-title" onclick="toggleGroup(this)">➕ Aritmetik İşlemler <span>▾</span></div>
+      <div class="op-group-body">
+        <button class="op-btn" onclick="selectOp('subtract')">Çıkarma (İki Resim)</button>
+        <button class="op-btn" onclick="selectOp('multiply')">Çarpma (İki Resim)</button>
+      </div>
+    </div>
+
+    <!-- Kontrast / Filtre -->
+    <div class="op-group">
+      <div class="op-group-title" onclick="toggleGroup(this)">🎛️ Kontrast & Filtre <span>▾</span></div>
+      <div class="op-group-body">
+        <button class="op-btn" onclick="selectOp('contrast_reduce')">Kontrast Azaltma</button>
+        <button class="op-btn" onclick="selectOp('median_filter')">Median Filtre (Konv.)</button>
+        <button class="op-btn" onclick="selectOp('motion_blur')">Motion Blur</button>
+      </div>
+    </div>
+
+    <!-- Eşikleme -->
+    <div class="op-group">
+      <div class="op-group-title" onclick="toggleGroup(this)">⚡ Eşikleme <span>▾</span></div>
+      <div class="op-group-body">
+        <button class="op-btn" onclick="selectOp('double_threshold')">Çift Eşikleme</button>
+      </div>
+    </div>
+
+    <!-- Kenar -->
+    <div class="op-group">
+      <div class="op-group-title" onclick="toggleGroup(this)">🔍 Kenar Bulma <span>▾</span></div>
+      <div class="op-group-body">
+        <button class="op-btn" onclick="selectOp('canny')">Canny (Manuel)</button>
+      </div>
+    </div>
+
+    <!-- Gürültü -->
+    <div class="op-group">
+      <div class="op-group-title" onclick="toggleGroup(this)">📡 Gürültü İşlemleri <span>▾</span></div>
+      <div class="op-group-body">
+        <button class="op-btn" onclick="selectOp('salt_pepper')">Salt & Pepper Ekle</button>
+        <button class="op-btn" onclick="selectOp('mean_filter')">Mean Filter (Gürültü Gider)</button>
+        <button class="op-btn" onclick="selectOp('median_denoise')">S&P + Median Denoise</button>
+      </div>
+    </div>
+
+    <!-- Morfoloji -->
+    <div class="op-group">
+      <div class="op-group-title" onclick="toggleGroup(this)">🔬 Morfolojik İşlemler <span>▾</span></div>
+      <div class="op-group-body">
+        <button class="op-btn" onclick="selectOp('dilate')">Genişleme (Dilation)</button>
+        <button class="op-btn" onclick="selectOp('erode')">Aşınma (Erosion)</button>
+        <button class="op-btn" onclick="selectOp('morph_open')">Açma (Opening)</button>
+        <button class="op-btn" onclick="selectOp('morph_close')">Kapama (Closing)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MERKEZ ── -->
+  <div class="center">
+    <div class="canvas-area">
+      <!-- Orijinal -->
+      <div class="img-frame">
+        <div class="img-label">Giriş</div>
+        <div class="img-container" id="inputContainer">
+          <div class="img-placeholder" id="inputPlaceholder">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <div>Görüntü yükleyin</div>
+            <div style="font-size:11px">JPG, PNG, BMP desteklenir</div>
+          </div>
+          <img id="inputImg" style="display:none"/>
+          <div class="loading-overlay" id="inputLoading">
+            <div class="spinner" style="display:block"></div>
+          </div>
+        </div>
+        <div class="img-info" id="inputInfo"></div>
+      </div>
+
+      <div class="arrow-divider">→</div>
+
+      <!-- Sonuç -->
+      <div class="img-frame">
+        <div class="img-label">Çıktı</div>
+        <div class="img-container" id="outputContainer">
+          <div class="img-placeholder" id="outputPlaceholder">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            <div style="color:#333366">İşlem bekleniyor</div>
+          </div>
+          <img id="outputImg" style="display:none"/>
+          <div class="loading-overlay" id="outputLoading">
+            <div class="spinner" style="display:block"></div>
+          </div>
+        </div>
+        <div class="img-info" id="outputInfo"></div>
+      </div>
+    </div>
+
+    <!-- Upload bar -->
+    <div class="upload-bar">
+      <div class="file-input-wrapper btn btn-secondary">
+        📁 Görüntü Yükle
+        <input type="file" id="fileInput" accept="image/*" onchange="loadImage(this)">
+      </div>
+
+      <div class="file-input-wrapper btn btn-secondary img2-zone" id="img2Zone" style="display:none">
+        📁 2. Görüntü
+        <input type="file" id="fileInput2" accept="image/*" onchange="loadImage2(this)">
+      </div>
+
+      <button class="btn btn-primary" onclick="applyOperation()" id="applyBtn">
+        ▶ Uygula
+      </button>
+
+      <button class="btn btn-success" onclick="saveResult()" id="saveBtn" style="display:none">
+        ↓ Kaydet
+      </button>
+
+      <button class="btn btn-secondary" onclick="useResultAsInput()" id="chainBtn" style="display:none">
+        ⟳ Zincirle
+      </button>
+
+      <button class="btn btn-danger" onclick="clearAll()">✕ Temizle</button>
+
+      <div class="spinner" id="mainSpinner"></div>
+      <div class="status-bar" id="statusBar">Hazır</div>
+    </div>
+  </div>
+
+  <!-- ── SAĞ PANEL: Parametreler ── -->
+  <div class="right-panel">
+    <div class="panel-title">Parametreler</div>
+
+    <!-- Parametre kartı - dinamik dolacak -->
+    <div class="param-group" id="paramPanel">
+      <div class="param-title">Seçim Bekleniyor</div>
+      <div class="info-card">
+        <p>Sol panelden bir <strong>işlem seçin</strong>, ardından parametreleri ayarlayıp <strong>Uygula</strong>'ya tıklayın.</p>
+      </div>
+    </div>
+
+    <!-- Histogram görünüm -->
+    <div class="hist-preview" id="histPanel" style="display:none">
+      <img id="histOrig" alt="Orijinal Histogram">
+      <img id="histResult" alt="Sonuç Histogram">
+    </div>
+
+    <!-- Algoritma açıklaması -->
+    <div class="info-card" id="algoInfo" style="display:none">
+      <div class="param-title">Algoritma</div>
+      <p id="algoText"></p>
+    </div>
+
+    <!-- Görüntü istatistikleri -->
+    <div class="param-group" id="statsPanel" style="display:none">
+      <div class="param-title">İstatistikler</div>
+      <div id="statsContent" style="font-family:'Space Mono',monospace; font-size:11px; color:var(--muted); line-height:2;"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SERVER = 'http://localhost:5050';
+
+let currentOp = null;
+let inputImageData = null;
+let input2ImageData = null;
+let resultImageData = null;
+
+// ── İşlem tanımları ──────────────────────────────────────────
+const OPERATIONS = {
+  grayscale: {
+    label: 'Gri Dönüşüm',
+    params: [],
+    algo: 'Y = 0.114·B + 0.587·G + 0.299·R formülü (ITU-R 601) ile her piksel dönüştürülür.',
+    needs2: false
+  },
+  binary: {
+    label: 'Binary Dönüşüm',
+    params: [{ id:'threshold', label:'Eşik Değeri', type:'range', min:0, max:255, def:127 }],
+    algo: 'Eşik değerinden büyük pikseller 255, küçükler 0 yapılır.',
+    needs2: false
+  },
+  rotate: {
+    label: 'Görüntü Döndürme',
+    params: [{ id:'angle', label:'Açı (derece)', type:'range', min:-180, max:180, def:45 }],
+    algo: 'Ters rotasyon matrisi kullanılarak hedef piksel, kaynak görüntüde hesaplanır. Bilinear interpolasyon ile doldurulur.',
+    needs2: false
+  },
+  crop: {
+    label: 'Görüntü Kırpma',
+    params: [
+      { id:'x', label:'X başlangıç', type:'number', def:0 },
+      { id:'y', label:'Y başlangıç', type:'number', def:0 },
+      { id:'w', label:'Genişlik', type:'number', def:200 },
+      { id:'h', label:'Yükseklik', type:'number', def:200 }
+    ],
+    algo: 'Belirtilen koordinatlardan itibaren alt matris kesilir.',
+    needs2: false
+  },
+  resize: {
+    label: 'Yaklaştır / Uzaklaştır',
+    params: [
+      { id:'scale_x', label:'X Ölçek', type:'range', min:0.1, max:4, step:0.1, def:1.5 },
+      { id:'scale_y', label:'Y Ölçek', type:'range', min:0.1, max:4, step:0.1, def:1.5 }
+    ],
+    algo: 'Her çıktı pikseli için kaynak koordinat hesaplanır, bilinear interpolasyon ile 4 komşu piksel ağırlıklı ortalanır.',
+    needs2: false
+  },
+  hsv: {
+    label: 'BGR → HSV',
+    params: [],
+    algo: 'H: 0-360°, S: 0-1, V: 0-1. Max, min, delta değerleri ile formüllerle piksel piksel dönüşüm yapılır.',
+    needs2: false
+  },
+  lab: {
+    label: 'BGR → LAB',
+    params: [],
+    algo: 'BGR → linear RGB → XYZ (D65) → LAB. f(t) = t^(1/3) (t>0.008856) dönüşümü kullanılır.',
+    needs2: false
+  },
+  histogram_view: {
+    label: 'Histogram Görüntüle',
+    params: [],
+    algo: '256 elemanlı dizi oluşturulur. Her piksel değeri için ilgili bin sayacı arttırılır.',
+    needs2: false
+  },
+  histogram_stretch: {
+    label: 'Histogram Germe',
+    params: [],
+    algo: 'Yeni_değer = (eski - min) / (max - min) × 255. Min ve max piksel değerleri bulunarak tüm dinamik aralık 0-255 arasına gerilir.',
+    needs2: false
+  },
+  subtract: {
+    label: 'Çıkarma',
+    params: [],
+    algo: '|I1 - I2| formülü. İki görüntü arasındaki mutlak fark hesaplanır, değişen bölgeler vurgulanır.',
+    needs2: true
+  },
+  multiply: {
+    label: 'Çarpma',
+    params: [],
+    algo: 'Normalize (0-1) edilmiş iki görüntü eleman-bazlı çarpılır, ardından 0-255 aralığına geri dönülür.',
+    needs2: true
+  },
+  contrast_reduce: {
+    label: 'Kontrast Azaltma',
+    params: [{ id:'factor', label:'Ölçek (0=düz, 1=orijinal)', type:'range', min:0, max:1, step:0.05, def:0.5 }],
+    algo: 'Yeni = 128 + factor × (orijinal - 128). Tüm değerler 128 etrafında sıkıştırılır.',
+    needs2: false
+  },
+  median_filter: {
+    label: 'Median Filtre',
+    params: [{ id:'kernel_size', label:'Kernel Boyutu', type:'range', min:3, max:11, step:2, def:3 }],
+    algo: 'Her piksel etrafındaki penceredeki değerler sıralanır, ortadaki değer kullanılır. Salt&pepper gürültüsüne karşı etkilidir.',
+    needs2: false
+  },
+  double_threshold: {
+    label: 'Çift Eşikleme',
+    params: [
+      { id:'low', label:'Düşük Eşik', type:'range', min:0, max:200, def:50 },
+      { id:'high', label:'Yüksek Eşik', type:'range', min:50, max:255, def:150 }
+    ],
+    algo: '≥high → 255 (güçlü), low..high → 128 (zayıf), <low → 0. Canny algoritmasında kullanılan yöntem.',
+    needs2: false
+  },
+  canny: {
+    label: 'Canny Kenar',
+    params: [
+      { id:'low', label:'Düşük Eşik', type:'range', min:0, max:200, def:50 },
+      { id:'high', label:'Yüksek Eşik', type:'range', min:50, max:255, def:150 }
+    ],
+    algo: '1) Gaussian blur 2) Sobel gradyanı 3) Non-maximum suppression 4) Çift eşikleme 5) Hysteresis bağlantısı. Tamamen sıfırdan.',
+    needs2: false
+  },
+  salt_pepper: {
+    label: 'Salt & Pepper Gürültü',
+    params: [{ id:'prob', label:'Gürültü Olasılığı', type:'range', min:0.01, max:0.3, step:0.01, def:0.05 }],
+    algo: 'Rastgele seçilen pikseller 0 (tuz) veya 255 (biber) değerine atanır.',
+    needs2: false
+  },
+  mean_filter: {
+    label: 'Mean Filtre',
+    params: [{ id:'kernel_size', label:'Kernel Boyutu', type:'range', min:3, max:15, step:2, def:5 }],
+    algo: 'Penceredeki tüm piksellerin aritmetik ortalaması alınır. Gaussian gürültüsüne karşı etkilidir.',
+    needs2: false
+  },
+  median_denoise: {
+    label: 'S&P + Median Denoise',
+    params: [
+      { id:'prob', label:'Gürültü Olasılığı', type:'range', min:0.01, max:0.2, step:0.01, def:0.05 },
+      { id:'kernel_size', label:'Median Kernel', type:'range', min:3, max:9, step:2, def:3 }
+    ],
+    algo: 'Salt&Pepper eklendikten sonra median filtre ile temizlenir. Karşılaştırma için gürültülü görüntü de gösterilir.',
+    needs2: false
+  },
+  motion_blur: {
+    label: 'Motion Blur',
+    params: [
+      { id:'size', label:'Kernel Boyutu', type:'range', min:5, max:31, step:2, def:15 },
+      { id:'angle', label:'Açı (derece)', type:'range', min:0, max:180, def:0 }
+    ],
+    algo: 'Yatay çizgi kernel oluşturulur, belirtilen açıya döndürülür ve konvolüsyon uygulanır.',
+    needs2: false
+  },
+  dilate: {
+    label: 'Genişleme (Dilation)',
+    params: [{ id:'kernel_size', label:'Yapısal Eleman', type:'range', min:3, max:11, step:2, def:3 }],
+    algo: 'Her piksel pozisyonunda penceredeki maksimum değer atanır. Parlak nesneler büyür.',
+    needs2: false
+  },
+  erode: {
+    label: 'Aşınma (Erosion)',
+    params: [{ id:'kernel_size', label:'Yapısal Eleman', type:'range', min:3, max:11, step:2, def:3 }],
+    algo: 'Her piksel pozisyonunda penceredeki minimum değer atanır. Parlak nesneler küçülür.',
+    needs2: false
+  },
+  morph_open: {
+    label: 'Açma (Opening)',
+    params: [{ id:'kernel_size', label:'Yapısal Eleman', type:'range', min:3, max:11, step:2, def:3 }],
+    algo: 'Açma = Aşınma + Genişleme. Küçük gürültüleri kaldırır, büyük nesneleri korur.',
+    needs2: false
+  },
+  morph_close: {
+    label: 'Kapama (Closing)',
+    params: [{ id:'kernel_size', label:'Yapısal Eleman', type:'range', min:3, max:11, step:2, def:3 }],
+    algo: 'Kapama = Genişleme + Aşınma. Küçük delikleri kapatır, nesneleri bütünleştirir.',
+    needs2: false
+  }
+};
+
+// ── Grup aç/kapat ────────────────────────────────────────────
+function toggleGroup(el) {
+  const body = el.nextElementSibling;
+  const arrow = el.querySelector('span');
+  body.classList.toggle('collapsed');
+  arrow.textContent = body.classList.contains('collapsed') ? '▸' : '▾';
+}
+
+// ── İşlem seç ───────────────────────────────────────────────
+function selectOp(op) {
+  currentOp = op;
+  document.querySelectorAll('.op-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+
+  const def = OPERATIONS[op];
+  if (!def) return;
+
+  // 2. görüntü göster/gizle
+  document.getElementById('img2Zone').style.display = def.needs2 ? 'flex' : 'none';
+
+  // Parametre paneli oluştur
+  buildParamPanel(op, def);
+
+  // Algoritma bilgisi
+  const algoEl = document.getElementById('algoInfo');
+  const algoText = document.getElementById('algoText');
+  algoEl.style.display = 'block';
+  algoText.textContent = def.algo;
+}
+
+function buildParamPanel(op, def) {
+  const panel = document.getElementById('paramPanel');
+  let html = `<div class="param-title">${def.label}</div>`;
+
+  if (def.params.length === 0) {
+    html += `<p style="font-size:12px;color:var(--muted)">Bu işlem için parametre gerekmez.</p>`;
+  }
+
+  def.params.forEach(p => {
+    html += `<div class="param-row"><label class="param-label">${p.label}</label>`;
+    if (p.type === 'range') {
+      const step = p.step || 1;
+      html += `
+        <input type="range" id="p_${p.id}" min="${p.min}" max="${p.max}" step="${step}" value="${p.def}"
+               oninput="document.getElementById('v_${p.id}').textContent=this.value">
+        <div class="range-val" id="v_${p.id}">${p.def}</div>
+      `;
+    } else {
+      html += `<input type="number" class="param-input" id="p_${p.id}" value="${p.def}">`;
+    }
+    html += `</div>`;
+  });
+
+  panel.innerHTML = html;
+}
+
+function getParams() {
+  const def = OPERATIONS[currentOp];
+  if (!def) return {};
+  const params = {};
+  def.params.forEach(p => {
+    const el = document.getElementById('p_' + p.id);
+    if (el) params[p.id] = parseFloat(el.value);
+  });
+  return params;
+}
+
+// ── Dosya yükleme ────────────────────────────────────────────
+function loadImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    inputImageData = e.target.result;
+    const img = document.getElementById('inputImg');
+    img.src = inputImageData;
+    img.style.display = 'block';
+    document.getElementById('inputPlaceholder').style.display = 'none';
+
+    // Boyut bilgisi
+    img.onload = () => {
+      document.getElementById('inputInfo').textContent = `${img.naturalWidth} × ${img.naturalHeight} px`;
+      updateStats(img);
+    };
+    showToast('Görüntü yüklendi', 'success');
+  };
+  reader.readAsDataURL(file);
+}
+
+function loadImage2(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    input2ImageData = e.target.result;
+    showToast('2. Görüntü yüklendi', 'success');
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── İşlem uygula ─────────────────────────────────────────────
+async function applyOperation() {
+  if (!inputImageData) { showToast('Önce görüntü yükleyin!', 'error'); return; }
+  if (!currentOp) { showToast('Sol panelden işlem seçin!', 'error'); return; }
+
+  const def = OPERATIONS[currentOp];
+  if (def.needs2 && !input2ImageData) {
+    showToast('Bu işlem için 2. görüntü gerekli!', 'error'); return;
+  }
+
+  setStatus('İşleniyor...', 'processing');
+  document.getElementById('mainSpinner').style.display = 'block';
+  document.getElementById('outputLoading').classList.add('show');
+
+  const body = {
+    image: inputImageData,
+    operation: currentOp,
+    params: getParams()
+  };
+  if (input2ImageData) body.image2 = input2ImageData;
+
+  try {
+    const resp = await fetch(SERVER + '/process', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await resp.json();
+
+    if (data.error) {
+      showToast('Hata: ' + data.error, 'error');
+      setStatus('Hata!', 'error');
+    } else {
+      resultImageData = data.result;
+      const outImg = document.getElementById('outputImg');
+      outImg.src = resultImageData;
+      outImg.style.display = 'block';
+      document.getElementById('outputPlaceholder').style.display = 'none';
+      outImg.onload = () => {
+        document.getElementById('outputInfo').textContent =
+          `${outImg.naturalWidth} × ${outImg.naturalHeight} px`;
+      };
+
+      // Histogramlar
+      const histPanel = document.getElementById('histPanel');
+      if (data.hist_orig) {
+        histPanel.style.display = 'flex';
+        document.getElementById('histOrig').src = data.hist_orig;
+      }
+      if (data.hist_result) {
+        document.getElementById('histResult').src = data.hist_result;
+        document.getElementById('histResult').style.display = 'block';
+      } else if (data.hist_orig) {
+        document.getElementById('histResult').style.display = 'none';
+      }
+      if (!data.hist_orig) histPanel.style.display = 'none';
+
+      document.getElementById('saveBtn').style.display = 'inline-block';
+      document.getElementById('chainBtn').style.display = 'inline-block';
+      setStatus('Tamamlandı ✓', 'done');
+      showToast('İşlem başarılı!', 'success');
+    }
+  } catch(e) {
+    showToast('Sunucu bağlantı hatası: ' + e.message, 'error');
+    setStatus('Hata!', 'error');
+  } finally {
+    document.getElementById('mainSpinner').style.display = 'none';
+    document.getElementById('outputLoading').classList.remove('show');
+  }
+}
+
+// ── Sonucu kaydet ────────────────────────────────────────────
+function saveResult() {
+  if (!resultImageData) return;
+  const a = document.createElement('a');
+  a.href = resultImageData;
+  a.download = `pixellab_${currentOp}_${Date.now()}.png`;
+  a.click();
+  showToast('Kaydedildi!', 'success');
+}
+
+// ── Zincirle ─────────────────────────────────────────────────
+function useResultAsInput() {
+  if (!resultImageData) return;
+  inputImageData = resultImageData;
+  const img = document.getElementById('inputImg');
+  img.src = inputImageData;
+  img.style.display = 'block';
+  document.getElementById('inputPlaceholder').style.display = 'none';
+  // Çıktıyı temizle
+  document.getElementById('outputImg').style.display = 'none';
+  document.getElementById('outputPlaceholder').style.display = 'flex';
+  resultImageData = null;
+  document.getElementById('saveBtn').style.display = 'none';
+  document.getElementById('chainBtn').style.display = 'none';
+  showToast('Sonuç giriş olarak ayarlandı', 'success');
+}
+
+// ── Temizle ──────────────────────────────────────────────────
+function clearAll() {
+  inputImageData = null; input2ImageData = null; resultImageData = null;
+  document.getElementById('inputImg').style.display = 'none';
+  document.getElementById('inputPlaceholder').style.display = 'flex';
+  document.getElementById('outputImg').style.display = 'none';
+  document.getElementById('outputPlaceholder').style.display = 'flex';
+  document.getElementById('saveBtn').style.display = 'none';
+  document.getElementById('chainBtn').style.display = 'none';
+  document.getElementById('histPanel').style.display = 'none';
+  document.getElementById('inputInfo').textContent = '';
+  document.getElementById('outputInfo').textContent = '';
+  document.getElementById('statsPanel').style.display = 'none';
+  setStatus('Hazır', '');
+}
+
+// ── Yardımcılar ──────────────────────────────────────────────
+function setStatus(msg, cls) {
+  const el = document.getElementById('statusBar');
+  el.textContent = msg;
+  el.className = 'status-bar ' + cls;
+}
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+function updateStats(img) {
+  const panel = document.getElementById('statsPanel');
+  const content = document.getElementById('statsContent');
+  panel.style.display = 'block';
+  content.innerHTML = `
+    Genişlik: <span style="color:var(--accent)">${img.naturalWidth} px</span><br>
+    Yükseklik: <span style="color:var(--accent)">${img.naturalHeight} px</span><br>
+    Piksel sayısı: <span style="color:var(--accent)">${(img.naturalWidth * img.naturalHeight).toLocaleString()}</span>
+  `;
+}
+
+// Sayfa yüklenince ilk grup açık kalsın
+document.querySelectorAll('.op-group-body').forEach((b,i) => {
+  if (i > 0) { b.classList.add('collapsed'); }
+});
+</script>
+
+</body>
+</html>
